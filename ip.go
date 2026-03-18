@@ -3,8 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
+	"strings"
 )
 
 type IPService interface {
@@ -38,7 +40,30 @@ type HTTPBasedIPService struct {
 }
 
 type IPResponse struct {
-	IP string
+	IP string `json:"ip"`
+}
+
+// parseIPResponse tries to parse the response body as either JSON or plain text
+func parseIPResponse(body io.Reader) (string, error) {
+	data, err := io.ReadAll(body)
+	if err != nil {
+		return "", err
+	}
+
+	content := strings.TrimSpace(string(data))
+
+	// Try JSON format first: {"ip":"x.x.x.x"}
+	var jsonResp IPResponse
+	if err := json.Unmarshal(data, &jsonResp); err == nil && jsonResp.IP != "" {
+		return jsonResp.IP, nil
+	}
+
+	// Fall back to plain text format
+	if net.ParseIP(content) != nil {
+		return content, nil
+	}
+
+	return "", fmt.Errorf("unable to parse IP from response: %s", content)
 }
 
 func (h *HTTPBasedIPService) GetExternalIP() (net.IP, error) {
@@ -46,11 +71,13 @@ func (h *HTTPBasedIPService) GetExternalIP() (net.IP, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	defer r.Body.Close()
-	var resp IPResponse
-	json.NewDecoder(r.Body).Decode(&resp)
-	return net.ParseIP(resp.IP), nil
+
+	ipStr, err := parseIPResponse(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	return net.ParseIP(ipStr), nil
 }
 
 func (h *HTTPBasedIPService) GetExternalIPv6() (net.IP, error) {
@@ -58,9 +85,11 @@ func (h *HTTPBasedIPService) GetExternalIPv6() (net.IP, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	defer r.Body.Close()
-	var resp IPResponse
-	json.NewDecoder(r.Body).Decode(&resp)
-	return net.ParseIP(resp.IP), nil
+
+	ipStr, err := parseIPResponse(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	return net.ParseIP(ipStr), nil
 }
