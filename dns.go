@@ -34,6 +34,10 @@ func (c *CFDNSUpdater) UpdateRecordA(host string, ip net.IP) error {
 	}
 
 	for _, r := range records {
+		if r.Content == ip.String() {
+			c.log.Infof("A record for %s is already %s, skipping update", host, ip.String())
+			continue
+		}
 		c.log.Infof("Updating A record with ID %s to %s", r.ID, ip.String())
 		err := c.cf.UpdateDNSRecord(c.zoneId, r.ID, cloudflare.DNSRecord{Content: ip.String()})
 		if err != nil {
@@ -51,6 +55,10 @@ func (c *CFDNSUpdater) UpdateRecordAAAA(host string, ip net.IP) error {
 	}
 
 	for _, r := range records {
+		if r.Content == ip.String() {
+			c.log.Infof("AAAA record for %s is already %s, skipping update", host, ip.String())
+			continue
+		}
 		c.log.Infof("Updating AAAA record with ID %s to %s", r.ID, ip.String())
 		err := c.cf.UpdateDNSRecord(c.zoneId, r.ID, cloudflare.DNSRecord{Content: ip.String()})
 		if err != nil {

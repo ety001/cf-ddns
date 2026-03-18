@@ -23,16 +23,69 @@ Flags:
   --ip-address=IP-ADDRESS  Skip resolving external IP and use provided IP (IPv4)
   --ipv6-address=IPV6-ADDRESS  Skip resolving external IPv6 and use provided IPv6
   --no-verify              Don't verify ssl certificates
+  --interval=0             Run in loop mode, checking IP every N minutes (0 = run once)
   --cf-email=CF-EMAIL      Cloudflare Email
   --cf-api-key=CF-API-KEY  Cloudflare API key
   --cf-zone-id=CF-ZONE-ID  Cloudflare Zone ID
 ```
 
+## Loop Mode
+
+The `--interval` parameter allows the program to run continuously and check for IP changes at a specified interval (in minutes). This is useful when you don't want to use cron or external schedulers.
+
+### How Loop Mode Works
+
+- When `--interval` is set to a value greater than 0, the program enters loop mode
+- The program will check your IP every N minutes
+- **DNS records are only updated when the IP changes**, avoiding unnecessary API calls to Cloudflare
+- The program runs once immediately on startup, then waits for the interval before the next check
+
+### Loop Mode Example
+
+Run in loop mode, checking IP every 10 minutes:
+
+```bash
+docker run --rm \
+  -e CF_EMAIL=your@email.com \
+  -e CF_API_KEY=your_api_key \
+  -e CF_ZONE_ID=your_zone_id \
+  -e IPV4_HOSTNAME=your.domain.com \
+  -e IPV6_HOSTNAME=your.domain.com \
+  ety001/cf-ddns:latest \
+  --interval 10
+```
+
+### Loop Mode with Docker Compose
+
+```yaml
+version: '3.8'
+services:
+  cf-ddns:
+    image: ety001/cf-ddns:latest
+    environment:
+      CF_EMAIL: your@email.com
+      CF_API_KEY: your_api_key
+      CF_ZONE_ID: your_zone_id
+      IPV4_HOSTNAME: your.domain.com
+      IPV6_HOSTNAME: your.domain.com
+    command: ["--interval", "10"]  # Check every 10 minutes
+    restart: unless-stopped
+```
+
+### Comparing Loop Mode vs Cron
+
+| Method | Pros | Cons |
+|--------|------|------|
+| **Loop Mode (`--interval`)** | Simple setup, no external scheduler needed | Container stays running |
+| **Cron** | Container runs only when needed, more traditional approach | Requires cron or external scheduler |
+
+Choose loop mode for simplicity, or cron for a more traditional "run and exit" approach.
+
 ## Docker Usage
 
 ### Using pre-built image
 
-Update both IPv4 and IPv6:
+Update both IPv4 and IPv6 (one-time run):
 
 ```bash
 docker run --rm \
@@ -77,24 +130,6 @@ docker run --rm \
   -e IPV4_HOSTNAME=your.domain.com \
   -e IPV6_HOSTNAME=ipv6.domain.com \
   cf-ddns
-```
-
-### Docker Compose Example (with cron schedule)
-
-```yaml
-version: '3.8'
-services:
-  cf-ddns:
-    image: ety001/cf-ddns:latest
-    environment:
-      CF_EMAIL: your@email.com
-      CF_API_KEY: your_api_key
-      CF_ZONE_ID: your_zone_id
-      IPV4_HOSTNAME: your.domain.com
-      IPV6_HOSTNAME: your.domain.com
-    restart: unless-stopped
-    # Optional: run every 5 minutes
-    # Use with docker-compose + cron or a scheduler
 ```
 
 ### Cron Example
