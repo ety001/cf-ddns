@@ -13,7 +13,6 @@ import (
 var log = logrus.New()
 var Version string
 
-
 func main() {
 	var (
 		app = kingpin.New("cf-ddns", "Cloudflare DynDNS Updater").Version(Version)
@@ -45,7 +44,16 @@ func main() {
 				TLSClientConfig: &tls.Config{InsecureSkipVerify: *noVerify},
 			},
 		}
-		ip = &IpifyIPService{HttpClient: httpClient}
+
+		// Get IP endpoints from environment variables or use defaults
+		ipv4Endpoint := getEnvOrDefault("IPV4_ENDPOINT", "https://ipv4.ip.sb")
+		ipv6Endpoint := getEnvOrDefault("IPV6_ENDPOINT", "https://ipv6.ip.sb")
+
+		ip = &HTTPBasedIPService{
+			HttpClient:   httpClient,
+			IPv4Endpoint: ipv4Endpoint,
+			IPv6Endpoint: ipv6Endpoint,
+		}
 	}
 
 	if dns, err = NewCFDNSUpdater(*cfZoneId, *cfApiKey, *cfEmail, log.WithField("component", "cf-dns-updater")); err != nil {
@@ -77,4 +85,11 @@ func main() {
 			}
 		}
 	}
+}
+
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }

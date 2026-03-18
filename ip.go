@@ -31,34 +31,36 @@ func (f *FakeIPService) GetExternalIPv6() (net.IP, error) {
 	return f.fakeIPv6, nil
 }
 
-type IpifyIPService struct {
-	HttpClient *http.Client
+type HTTPBasedIPService struct {
+	HttpClient   *http.Client
+	IPv4Endpoint string
+	IPv6Endpoint string
 }
 
-type IpifyAPIResponse struct {
+type IPResponse struct {
 	IP string
 }
 
-func (i *IpifyIPService) GetExternalIP() (net.IP, error) {
-	r, err := i.HttpClient.Get("https://api.ipify.org?format=json")
+func (h *HTTPBasedIPService) GetExternalIP() (net.IP, error) {
+	r, err := h.HttpClient.Get(h.IPv4Endpoint)
 	if err != nil {
 		return nil, err
 	}
 
 	defer r.Body.Close()
-	var resp IpifyAPIResponse
+	var resp IPResponse
 	json.NewDecoder(r.Body).Decode(&resp)
 	return net.ParseIP(resp.IP), nil
 }
 
-func (i *IpifyIPService) GetExternalIPv6() (net.IP, error) {
-	r, err := i.HttpClient.Get("https://api64.ipify.org?format=json")
+func (h *HTTPBasedIPService) GetExternalIPv6() (net.IP, error) {
+	r, err := h.HttpClient.Get(h.IPv6Endpoint)
 	if err != nil {
 		return nil, err
 	}
 
 	defer r.Body.Close()
-	var resp IpifyAPIResponse
+	var resp IPResponse
 	json.NewDecoder(r.Body).Decode(&resp)
 	return net.ParseIP(resp.IP), nil
 }
