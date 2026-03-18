@@ -8,13 +8,13 @@ This tool supports both IPv4 (A records) and IPv6 (AAAA records) in a single ins
 
 - **IPv4**: Automatically detected via `ipv4.ip.sb` and updates A records
 - **IPv6**: Automatically detected via `ipv6.ip.sb` and updates AAAA records
-- If IPv6 is not available, the tool will log a warning and continue with IPv4 only
+- IPv4 and IPv6 updates are completely independent - you can update only IPv4, only IPv6, or both
 
 You only need **one container** to handle both IPv4 and IPv6.
 
 ```
 $> ./cf-ddns --help
-usage: cf-ddns --cf-email=CF-EMAIL --cf-api-key=CF-API-KEY --cf-zone-id=CF-ZONE-ID [<flags>] <hostnames>...
+usage: cf-ddns --cf-email=CF-EMAIL --cf-api-key=CF-API-KEY --cf-zone-id=CF-ZONE-ID [<flags>]
 
 Cloudflare DynDNS Updater
 
@@ -26,22 +26,44 @@ Flags:
   --cf-email=CF-EMAIL      Cloudflare Email
   --cf-api-key=CF-API-KEY  Cloudflare API key
   --cf-zone-id=CF-ZONE-ID  Cloudflare Zone ID
-
-Args:
-  <hostnames>  Hostnames to update
 ```
 
 ## Docker Usage
 
 ### Using pre-built image
 
+Update both IPv4 and IPv6:
+
 ```bash
 docker run --rm \
   -e CF_EMAIL=your@email.com \
   -e CF_API_KEY=your_api_key \
   -e CF_ZONE_ID=your_zone_id \
-  ety001/cf-ddns:latest \
-  your.domain.com
+  -e IPV4_HOSTNAME=your.domain.com \
+  -e IPV6_HOSTNAME=your.domain.com \
+  ety001/cf-ddns:latest
+```
+
+Update only IPv4:
+
+```bash
+docker run --rm \
+  -e CF_EMAIL=your@email.com \
+  -e CF_API_KEY=your_api_key \
+  -e CF_ZONE_ID=your_zone_id \
+  -e IPV4_HOSTNAME=your.domain.com \
+  ety001/cf-ddns:latest
+```
+
+Update only IPv6:
+
+```bash
+docker run --rm \
+  -e CF_EMAIL=your@email.com \
+  -e CF_API_KEY=your_api_key \
+  -e CF_ZONE_ID=your_zone_id \
+  -e IPV6_HOSTNAME=your.domain.com \
+  ety001/cf-ddns:latest
 ```
 
 ### Building locally
@@ -52,8 +74,9 @@ docker run --rm \
   -e CF_EMAIL=your@email.com \
   -e CF_API_KEY=your_api_key \
   -e CF_ZONE_ID=your_zone_id \
-  cf-ddns \
-  your.domain.com
+  -e IPV4_HOSTNAME=your.domain.com \
+  -e IPV6_HOSTNAME=ipv6.domain.com \
+  cf-ddns
 ```
 
 ### Docker Compose Example (with cron schedule)
@@ -67,7 +90,8 @@ services:
       CF_EMAIL: your@email.com
       CF_API_KEY: your_api_key
       CF_ZONE_ID: your_zone_id
-    command: your.domain.com
+      IPV4_HOSTNAME: your.domain.com
+      IPV6_HOSTNAME: your.domain.com
     restart: unless-stopped
     # Optional: run every 5 minutes
     # Use with docker-compose + cron or a scheduler
@@ -82,7 +106,8 @@ Run every 5 minutes:
   --cf-email your@email.com \
   --cf-api-key your_api_key \
   --cf-zone-id your_zone_id \
-  your.domain.com
+  -e IPV4_HOSTNAME=your.domain.com \
+  -e IPV6_HOSTNAME=your.domain.com
 ```
 
 ### Environment Variables
@@ -92,6 +117,8 @@ Run every 5 minutes:
 | `CF_EMAIL` | Cloudflare account email | Yes |
 | `CF_API_KEY` | Cloudflare API key (Global or Zone Edit) | Yes |
 | `CF_ZONE_ID` | Cloudflare Zone ID (found in DNS settings) | Yes |
+| `IPV4_HOSTNAME` | Hostname for IPv4 (A record) | At least one of IPV4_HOSTNAME or IPV6_HOSTNAME |
+| `IPV6_HOSTNAME` | Hostname for IPv6 (AAAA record) | At least one of IPV4_HOSTNAME or IPV6_HOSTNAME |
 | `IPV4_ENDPOINT` | IPv4 detection endpoint (default: `https://ipv4.ip.sb`) | No |
 | `IPV6_ENDPOINT` | IPv6 detection endpoint (default: `https://ipv6.ip.sb`) | No |
 
@@ -104,10 +131,11 @@ docker run --rm \
   -e CF_EMAIL=your@email.com \
   -e CF_API_KEY=your_api_key \
   -e CF_ZONE_ID=your_zone_id \
+  -e IPV4_HOSTNAME=your.domain.com \
+  -e IPV6_HOSTNAME=your.domain.com \
   -e IPV4_ENDPOINT=https://api.ipify.org?format=json \
   -e IPV6_ENDPOINT=https://api64.ipify.org?format=json \
-  ety001/cf-ddns:latest \
-  your.domain.com
+  ety001/cf-ddns:latest
 ```
 
 The custom endpoint must return a JSON response with an `ip` field:
@@ -121,12 +149,13 @@ The custom endpoint must return a JSON response with an `ip` field:
 version: '3.8'
 services:
   cf-ddns:
-    image: ghcr.io/favonia/cloudflare-ddns:latest
+    image: ety001/cf-ddns:latest
     environment:
       CF_EMAIL: your@email.com
       CF_API_KEY: your_api_key
       CF_ZONE_ID: your_zone_id
-    command: your.domain.com
+      IPV4_HOSTNAME: your.domain.com
+      IPV6_HOSTNAME: ipv6.domain.com
     # Optional: run periodically
     restart: unless-stopped
 ```
