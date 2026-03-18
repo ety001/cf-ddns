@@ -40,7 +40,7 @@ docker run --rm \
   -e CF_EMAIL=your@email.com \
   -e CF_API_KEY=your_api_key \
   -e CF_ZONE_ID=your_zone_id \
-  ghcr.io/favonia/cloudflare-ddns:latest \
+  ety001/cf-ddns:latest \
   your.domain.com
 ```
 
@@ -53,6 +53,35 @@ docker run --rm \
   -e CF_API_KEY=your_api_key \
   -e CF_ZONE_ID=your_zone_id \
   cf-ddns \
+  your.domain.com
+```
+
+### Docker Compose Example (with cron schedule)
+
+```yaml
+version: '3.8'
+services:
+  cf-ddns:
+    image: ety001/cf-ddns:latest
+    environment:
+      CF_EMAIL: your@email.com
+      CF_API_KEY: your_api_key
+      CF_ZONE_ID: your_zone_id
+    command: your.domain.com
+    restart: unless-stopped
+    # Optional: run every 5 minutes
+    # Use with docker-compose + cron or a scheduler
+```
+
+### Cron Example
+
+Run every 5 minutes:
+
+```bash
+*/5 * * * * docker run --rm ety001/cf-ddns:latest \
+  --cf-email your@email.com \
+  --cf-api-key your_api_key \
+  --cf-zone-id your_zone_id \
   your.domain.com
 ```
 
